@@ -20,7 +20,7 @@ export const isSelected = (
 	if (item.leafs.length) {
 		return items
 			.filter(({ key }) => item.leafs.includes(key))
-			.every(({ key }) => selected.includes(key));
+			.some(({ key }) => selected.includes(key));
 	}
 
 	return selected.includes(key);
