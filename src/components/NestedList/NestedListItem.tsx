@@ -1,15 +1,17 @@
+import { FC, useContext, useMemo, useState } from "react";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
+
+import { ListItemData, NestedContext } from "./Context";
+import { NestedList } from "./NestedList";
+
 import {
 	ListItemButton,
 	ListItemText,
 	Collapse,
-	Checkbox,
 	ListItemIcon,
 } from "@mui/material";
-import { FC, useContext, useMemo, useState } from "react";
-import NestedContext from "./Context";
-import { NestedList } from "./NestedList";
-import { useSelected } from "./useSelected";
+
+import { CustomChecbox } from "./CustomChecbox";
 
 type NestedListItemProps = {
 	item: ListItemData;
@@ -28,11 +30,10 @@ export const NestedListItem: FC<NestedListItemProps> = ({
 	};
 
 	const subitems = useMemo(
-		() => items.filter((x) => x.parent === item.key),
-		[item.key, items]
+		() => items.filter((x) => x.parent === item.id),
+		[item.id, items]
 	);
 
-	const checked = useSelected(item.key);
 	const sx = level ? { pl: level * 2 } : {};
 
 	if (subitems.length) {
@@ -40,15 +41,11 @@ export const NestedListItem: FC<NestedListItemProps> = ({
 			<>
 				<ListItemButton sx={sx} onClick={handleClick}>
 					<ListItemIcon>
-						<Checkbox
-							edge="start"
-							checked={checked}
-							tabIndex={-1}
-							disableRipple
-							inputProps={{ "aria-labelledby": "flag3" }}
+						<CustomChecbox
+							id={item.id}
 							onClick={(e) => {
 								e.stopPropagation();
-								onSelect(item.key);
+								onSelect(item.id);
 							}}
 						/>
 					</ListItemIcon>
@@ -57,24 +54,18 @@ export const NestedListItem: FC<NestedListItemProps> = ({
 				</ListItemButton>
 
 				<Collapse in={open} timeout="auto" unmountOnExit>
-					<NestedList parent={item.key} level={level + 1} />
+					<NestedList parent={item.id} level={level + 1} />
 				</Collapse>
 			</>
 		);
 	}
 
 	return (
-		<ListItemButton sx={sx} onClick={() => onSelect(item.key)}>
+		<ListItemButton sx={sx} onClick={() => onSelect(item.id)}>
 			<ListItemIcon>
-				<Checkbox
-					edge="start"
-					checked={checked}
-					tabIndex={-1}
-					disableRipple
-					inputProps={{ "aria-labelledby": item.key }}
-				/>
+				<CustomChecbox id={item.id} />
 			</ListItemIcon>
-			<ListItemText primary={item.label} id={item.key} />
+			<ListItemText primary={item.label} id={item.id} />
 		</ListItemButton>
 	);
 };

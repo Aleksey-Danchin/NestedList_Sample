@@ -1,6 +1,6 @@
 import { List } from "@mui/material";
 import { FC, useContext, useMemo } from "react";
-import NestedContext from "./Context";
+import { NestedContext } from "./Context";
 import { NestedListItem } from "./NestedListItem";
 
 type NestedListProps = {
@@ -21,7 +21,7 @@ export const NestedList: FC<NestedListProps> = ({ parent, level = 0 }) => {
 	return (
 		<List component="nav" aria-labelledby="nested-list-subheader" sx={sx}>
 			{levelItems.map((item) => (
-				<NestedListItem key={item.key} item={item} level={level} />
+				<NestedListItem key={item.id} item={item} level={level} />
 			))}
 		</List>
 	);

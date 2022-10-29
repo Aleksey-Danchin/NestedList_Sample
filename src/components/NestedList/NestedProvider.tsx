@@ -1,8 +1,14 @@
 import { List, ListSubheader } from "@mui/material";
 import { FC, useCallback, useMemo } from "react";
-import NestedContext from "./Context";
+import {
+	ListData,
+	ListItemData,
+	NestedContext,
+	NestedMap,
+	_leafs,
+} from "./Context";
 import { NestedListItem } from "./NestedListItem";
-import { getSubitems, isLeaf, isSelected } from "./useSelected";
+import { getSelectedFlag, NOT_SELECTED } from "./useSelectedFlag";
 
 type NestedProviderProps = {
 	title?: string;
@@ -17,15 +23,20 @@ export const NestedProvider: FC<NestedProviderProps> = ({
 	selected,
 	onSelect,
 }) => {
-	const linkedItems = useMemo(() => {
-		return items.map((item) => {
-			const subitems = getSubitems(items, item.key);
+	const map = useMemo(() => {
+		const map: NestedMap = { [_leafs]: [] };
 
-			return {
-				...item,
-				leafs: subitems.map(({ key }) => key),
-			};
-		});
+		for (const item of items) {
+			const leafs = getLeafs(item, items);
+
+			if (leafs.length) {
+				map[item.id] = leafs.map(({ id }) => id);
+			} else {
+				map[_leafs].push(item.id);
+			}
+		}
+
+		return map;
 	}, [items]);
 
 	const levelItems = useMemo(
@@ -34,41 +45,42 @@ export const NestedProvider: FC<NestedProviderProps> = ({
 	);
 
 	const selectHandler = useCallback(
-		(key: string) => {
+		(id: string) => {
 			const nextSelected = selected.slice();
 
-			if (isLeaf(items, key)) {
-				const index = nextSelected.indexOf(key);
+			if (map[_leafs].includes(id)) {
+				const index = nextSelected.indexOf(id);
 
-				if (index !== -1) {
-					nextSelected.splice(index, 1);
+				if (index === -1) {
+					nextSelected.push(id);
 				} else {
-					nextSelected.push(key);
+					nextSelected.splice(index, 1);
 				}
 			} else {
-				const subitems = getSubitems(items, key);
-				const flag = isSelected(linkedItems, selected, key);
+				const leafIds = map[id];
+				const selectedFlag = getSelectedFlag({ id, map, selected });
 
-				if (flag) {
-					for (const subitem of subitems) {
-						const index = nextSelected.indexOf(subitem.key);
+				if (selectedFlag === NOT_SELECTED) {
+					nextSelected.push(...leafIds);
+				} else {
+					for (const leafId of leafIds) {
+						const index = nextSelected.indexOf(leafId);
+
 						if (index !== -1) {
 							nextSelected.splice(index, 1);
 						}
 					}
-				} else {
-					nextSelected.push(...subitems.map(({ key }) => key));
 				}
 			}
 
 			onSelect(nextSelected);
 		},
-		[items, linkedItems, onSelect, selected]
+		[map, onSelect, selected]
 	);
 
 	return (
 		<NestedContext.Provider
-			value={{ items: linkedItems, selected, onSelect: selectHandler }}
+			value={{ items, map, selected, onSelect: selectHandler }}
 		>
 			<List
 				component="nav"
@@ -85,9 +97,29 @@ export const NestedProvider: FC<NestedProviderProps> = ({
 				}
 			>
 				{levelItems.map((item) => (
-					<NestedListItem key={item.key} item={item} />
+					<NestedListItem key={item.id} item={item} />
 				))}
 			</List>
 		</NestedContext.Provider>
 	);
+};
+
+const getLeafs = (item: ListItemData, items: ListData) => {
+	const leafs = new Set<ListItemData>();
+
+	const checkItem = (item: ListItemData) => {
+		const subitems = items.filter(({ parent }) => parent === item.id);
+
+		for (const subitem of subitems) {
+			if (items.some(({ parent }) => parent === subitem.id)) {
+				checkItem(subitem);
+			} else {
+				leafs.add(subitem);
+			}
+		}
+	};
+
+	checkItem(item);
+
+	return Array.from(leafs) as ListData;
 };
